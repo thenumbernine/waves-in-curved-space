@@ -49,6 +49,12 @@ local maxAngle = 0
 local minDist = 0
 local maxDist = 0
 
+local body = {
+	centerX = 0,
+	centerY = 5,
+	R = .1,	-- Schwarzschild radius
+	rs = 1,	-- physical radius
+}
 
 function App:reset()
 	self.t = 0
@@ -76,19 +82,12 @@ function App:init(...)
 	self:reset()
 end
 
-
-local body = {
-	center = vec3d(0,0,5),
-	R = .1,	-- Schwarzschild radius
-	rs = 1,	-- physical radius
-}
-
 local function Conn_Vacuum(pt)
 	return matrix.zeros(3,3,3)
 end
 
 local function Conn_Newton(pt)
-	local d = pt - body.center
+	local d = pt - vec3d(0, body.centerX, body.centerY)
 	local t,x,y = d:unpack()
 	local r2 = x*x + y*y
 	local epsilon = 2 * body.R
@@ -123,7 +122,7 @@ local function Conn_Schwarzschild(pt)
 	Conn_kti = 1/2 (g_kt,i + g_ki,t - g_ti,k) = 0
 	Conn_kij = 1/2 (g_ki,j + g_kj,i - g_ij,k) = 
 	--]=]
-	local d = pt - body.center
+	local d = pt - vec3d(0, body.centerX, body.centerY)
 	local t,x,y = d:unpack()
 	local r2 = x*x + y*y
 	local epsilon = 2 * body.R
@@ -184,7 +183,7 @@ local function Conn_Schwarzschild(pt)
 end
 
 local function Conn_KerrSchild(pt)
-	local d = pt - body.center
+	local d = pt - vec3d(0, body.centerX, body.centerY)
 	local t,x,y = d:unpack()
 	local r2 = x*x + y*y
 	local epsilon = 2 * body.R
@@ -294,11 +293,8 @@ local function deriv(pt)
 	)
 end
 
-local angleDistThreshold = 1
-local angleThreshold = .1
-local distThreshold = 1
-
-local dt = .01
+_G.angleDistThreshold = 1
+_G.dt = .01
 function App:simulate()
 	if math.floor(self.t - dt) ~= math.floor(self.t) then
 		rings:insert(pts:map(function(pt)
@@ -422,8 +418,8 @@ function App:update(...)
 
 	gl.glColor3f(0,1,0)
 	gl.glBegin(gl.GL_LINES)
-	gl.glVertex3f(body.center.y, body.center.z, 0)
-	gl.glVertex3f(body.center.y, body.center.z, self.t)
+	gl.glVertex3f(body.centerX, body.centerY, 0)
+	gl.glVertex3f(body.centerX, body.centerY, self.t)
 	gl.glEnd()
 	for ir=0,1 do
 		local r = ir == 0 and body.R or body.rs
@@ -433,7 +429,7 @@ function App:update(...)
 			local n = 20
 			for i=1,n do
 				local th = (i-.5)/n * 2 * math.pi
-				gl.glVertex3d(r * math.cos(th) + body.center.y, r * math.sin(th) + body.center.z, t)
+				gl.glVertex3d(r * math.cos(th) + body.centerX, r * math.sin(th) + body.centerY, t)
 			end
 			gl.glEnd()
 		end
@@ -500,12 +496,31 @@ function App:update(...)
 	App.super.update(self, ...)
 end
 
+local buffer = ffi.new('char[256]')
+local function inputFloat(name, t, k)
+	local s = tostring(t[k])
+	ffi.copy(buffer, s, #s)
+	buffer[#s] = 0
+	if ig.igInputText(name, buffer, ffi.sizeof(buffer)) then
+		local v = tonumber(ffi.string(buffer))
+		if v then
+			t[k] = v
+		end
+	end
+end
+
 function App:updateGUI()
 	ig.igText('time '..self.t)
 	ig.igText('min angle '..minAngle)
 	ig.igText('max angle '..maxAngle)
 	ig.igText('min dist '..minDist)
 	ig.igText('max dist '..maxDist)
+	inputFloat('dt', _G, 'dt')
+	inputFloat('angle threshold', _G, 'angleDistThreshold')
+	inputFloat('body center x', body, 'centerX')
+	inputFloat('body center y', body, 'centerY')
+	inputFloat('body Schwarzschild radius', body, 'R')
+	inputFloat('body surface radius', body, 'rs')
 end
 
 App():run()
