@@ -280,10 +280,17 @@ local function Conn_KerrSchild(pt)
 	return gU * connL
 end
 
---local Conn = Conn_Vacuum
---local Conn = Conn_Newton
-local Conn = Conn_Schwarzschild
---local Conn = Conn_KerrSchild
+local metrics = table{
+	{vacuum = Conn_Vacuum},
+	{Newton = Conn_Newton},
+	{Schwarzschild = Conn_Schwarzschild},
+	{['Kerr-Schild'] = Conn_KerrSchild},
+}
+
+local metricNames = metrics:map(function(p) return (next(p)) end)
+
+local currentMetric = ffi.new('int[1]', 2)
+local Conn = select(2, next(metrics[currentMetric[0]+1]))
 
 local function deriv(pt)
 	local vm = matrix{pt.vel:unpack()}
@@ -369,15 +376,15 @@ function App:simulate()
 				local pb = pts[i%#pts+1]
 				local avel = math.sqrt(pa.vel.y * pa.vel.y + pa.vel.z * pa.vel.z)
 				local bvel = math.sqrt(pb.vel.y * pb.vel.y + pb.vel.z * pb.vel.z)
+				
 				local vel = (pa.vel + pb.vel) * .5
 				
-				local betaSq = vel.y * vel.y + vel.z * vel.z
-				local beta = math.sqrt(betaSq)
-
 				vel.x = 1
+				local beta = math.sqrt(vel.y * vel.y + vel.z * vel.z)
 				vel.y = vel.y / beta
 				vel.z = vel.z / beta
-				
+			
+				-- TODO spherical average.  trace back from pa,pb pos along vel to find intersect in xy, then do spherical averaging
 				local np = pt_t(
 					(pa.pos + pb.pos) * .5,
 					vel
@@ -521,6 +528,9 @@ function App:updateGUI()
 	inputFloat('body center y', body, 'centerY')
 	inputFloat('body Schwarzschild radius', body, 'R')
 	inputFloat('body surface radius', body, 'rs')
+	if ig.igCombo('metric', currentMetric, metricNames) then
+		Conn = select(2, next(metrics[currentMetric[0]+1]))
+	end
 end
 
 App():run()
