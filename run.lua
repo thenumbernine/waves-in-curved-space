@@ -42,6 +42,9 @@ pt_t = ffi.metatype('pt_t', {
 			a.vel * s
 		)
 	end,
+	__tostring = function(a)
+		return tolua{pos=a.pos, vel=a.vel}
+	end,
 })
 
 local minAngle = 0
@@ -362,20 +365,28 @@ function App:simulate()
 	self.t = self.t + dt
 	for i=1,#pts do
 		local pt = pts[i]
-		
-		-- Runge-Kutta 4
+	
+		--[[ Euler
+		local delta = deriv(pt) * dt
+		--]]
+		-- [[ Runge-Kutta 4
 		local k1 = deriv(pt) * dt 
 		local k2 = deriv(pt + k1 * .5) * dt
 		local k3 = deriv(pt + k2 * .5) * dt
 		local k4 = deriv(pt + k3) * dt
-		pts[i] = pts[i] + (k1 + k2 * 2 + k3 * 2 + k4) * (1/6) 
+		local delta = (k1 + k2 * 2 + k3 * 2 + k4) * (1/6) 
+		--]]
+		
+		delta = delta * (dt / delta.pos.x)
+		pts[i] = pts[i] + delta
 		--pt.vel = pt.vel / math.sqrt(pt.vel[1]*pt.vel[1] - pt.vel[2] * pt.vel[2] - pt.vel[3] * pt.vel[3])
 		
-		-- re-normalize
+		--[[ re-normalize
 		pt.vel.x = 1
 		local beta = math.sqrt(pt.vel.x * pt.vel.x + pt.vel.y * pt.vel.y)
 		pt.vel.y = pt.vel.y / beta
 		pt.vel.z = pt.vel.z / beta
+		--]]
 	end
 
 	-- measure angle range
