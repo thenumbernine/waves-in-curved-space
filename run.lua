@@ -102,86 +102,136 @@ local function Conn_Newton(pt)
 	return Conn
 end
 
+--[=[
+g_tt = -((1-R/(4r))/(1+R/(4r)))^2
+g_ij = delta_ij (1+R/(4r))^4
+
+g^tt = -((1+R/(4r))/(1-R/(4r)))^2
+g^ij = delta^ij (1+R/(4r))^(-4)
+
+g_tt,k = -2 ((1-R/(4r))/(1+R/(4r))) * (
+			(1-R/(4r))' * (1+R/(4r)) - (1-R/(4r)) (1+R/(4r))'
+		) / (1+R/(4r))^2
+	= -(1-R/(4r))/(1+R/(4r))^3 * R/r^3 x^k
+
+g_ij,k = delta_ij 4 (1+R/(4r))^3 (1+R/(4r))'
+	= -R/r^3 (1+R/(4r))^3 delta_ij x^k
+
+Conn_ttt = 0
+Conn_itt = 1/2 (g_it,t + g_it,t - g_tt,i) = -1/2 g_tt,i = 1/2 R/r^3 (1-R/(4r))/(1+R/(4r))^3 x^l delta_li
+Conn_tit = Conn_tti = 1/2 g_tt,i = -Conn_itt
+Conn_ijt = Conn_itj = 1/2 (g_ij,t + g_it,j - g_jt,i) = 1/2 g_ij,t = 0 
+Conn_tij = 1/2 (g_ti,j + g_tj,i - g_ij,t) = -1/2 g_ij,t = 0
+Conn_ijk = 1/2 (g_ij,k + g_ik,j - g_jk,i) = 1/2 (
+		- R/r^3 (1+R/(4r))^3 delta_ij x^k
+		- R/r^3 (1+R/(4r))^3 delta_ik x^j
+		+ R/r^3 (1+R/(4r))^3 delta_jk x^i
+	)
+	= R/(2 (r + R/4)^3) (-delta_ij delta_lk x^l - delta_ik delta_lj x^l + delta_jk delta_li x^l)
+
+Conn^t_tt = g^tt Conn_ttt + g^tm Conn_mtt = 0
+Conn^i_tt = g^it Conn_ttt + g^im Conn_mtt = delta^im (1+R/(4r))^(-4) * 1/2 R/r^3 (1-R/(4r))/(1+R/(4r))^3 x^l delta_lm
+	= 1/2 R/r^3 (1-R/(4r))/(1+R/(4r))^7 x^i
+
+Conn^t_it = Conn^t_ti = g^tt Conn_tti + g^tm Conn_mit = ((1+R/(4r))/(1-R/(4r)))^2 1/2 R/r^3 (1-R/(4r))/(1+R/(4r))^3 x^l delta_li
+	= 1/2 R/r^3 1/( (1-R/(4r)) (1+R/(4r)) ) x^l delta_li
+
+Conn^i_jt = Conn^i_tj = g^it Conn_ttj + g^im Conn_mjt = 0
+
+Conn^t_ij = g^tt Conn_tij + g^tm Conn_mij = 0
+
+Conn^i_jk = g^it Conn_tjk + g^im Conn_mjk = delta^im (1+R/(4r))^(-4) * 1/2 R/r^3 (1+R/(4r))^3 (-delta_mj delta_lk x^l - delta_mk delta_lj x^l + delta_jk delta_lm x^l)
+	= 1/2 R/r^3 1/(1+R/(4r)) (-delta^i_j delta_lk x^l - delta^i_k delta_lj x^l + delta_jk x^i)
+
+--]=]
 local function Conn_Schwarzschild(pt)
-	--[=[
-	g_tt = -(1-R/r) = -(r-R)/r
-	g_ij = 1/(r-R) (r delta_ij + R/r x^i x^j)
-	g_ij,k = 
-			1/(r-R) (
-				+ (1 - r/(r-R)) delta_ij x^k/r
-				+ R delta_ik x^j/r
-				+ R delta_jk x^i/r
-				- R (1 + r/(r-R)) x^i/r x^j/r x^k/r
-			)
-	g^tt = -r/(r-R)
-	g^ij = delta^ij - R/r^3 x^i x^j
-	Conn_ttt = 1/2 g_tt,t = 0
-	Conn_tti = 1/2 g_tt,i = 1/2 R/r^3 x^i
-	Conn_tij = 1/2 (g_ti,j + g_tj,i - g_ij,t) = 0
-	Conn_ktt = 1/2 (g_kt,t + g_kt,t - g_tt,k) = -1/2 R/r^3 x^k
-	Conn_kti = 1/2 (g_kt,i + g_ki,t - g_ti,k) = 0
-	Conn_kij = 1/2 (g_ki,j + g_kj,i - g_ij,k) = 
-	--]=]
 	local d = pt - vec3d(0, body.centerX, body.centerY)
 	local t,x,y = d:unpack()
 	local r2 = x*x + y*y
 	local epsilon = 2 * body.R
 	local Conn = matrix.zeros(3,3,3)
 	if r2 < epsilon * epsilon then return Conn end
+	local _1_r2 = 1 / r2
 	local r = math.sqrt(r2)
+	
 	local r_rs = r / body.rs
 	local R = body.R * math.ceil(1, r_rs * r_rs)
-	local r3 = r2 * r
-	local r4 = r2 * r2
-	local r_R = r - R
-	local r2_r_R = r2 * r_R
-	local conn_tti = R / (2 * r2_r_R)
-	local conn_ttx = conn_tti * x 
+	local R_r = R / r
+	local R_r3 = R * _1_r2
+
+	local mu_plus = 1 + .25 * R_r
+	local mu_minus = 1 - .25 * R_r
+
+	local mu_plus_2 = mu_plus * mu_plus   
+	local mu_plus_4 = mu_plus_2 * mu_plus_2
+	local mu_plus_7 = mu_plus_4 * mu_plus_2 * mu_plus 
+
+	local conn_tti = .5 * R_r3 * 1 / (mu_plus * mu_minus)
+	local conn_ttx = conn_tti * x
 	Conn[1][1][2] = conn_ttx
 	Conn[1][2][1] = conn_ttx
 	local conn_tty = conn_tti * y 
 	Conn[1][1][3] = conn_tty
 	Conn[1][3][1] = conn_tty
-	local conn_itt = R * r_R / (2 * r4)
+	
+	local conn_itt = .5 * R_r3 * mu_minus / mu_plus_7
 	Conn[2][1][1] = conn_itt * x
 	Conn[3][1][1] = conn_itt * y
 	
-	-- g^tt = -r/(r-R)
-	-- g^ij = delta^ij - R/r^3 x^i x^j
-	local R_r = R/r
-	local nx = x / r
-	local ny = y / r
-	local nxs = {nx, ny}
-	local guxx = 1 - R_r * nx * nx
-	local guxy = -R_r * nx * ny
-	local guyy = 1 - R_r * ny * ny
-	local gU = matrix{
-		{-r/r_R, 0, 0},
-		{0, guxx, guxy},
-		{0, guxy, guyy},
-	}
-	-- dgs[i][j][k] = g_ij,k
-	local dgs = matrix{2,2,2}:lambda(function(i,j,k)
-		local res = 0
-		if i == j then res = res + nxs[k] * (1 - r/r_R) end
-		if i == k then res = res + nxs[j] * R end
-		if j == k then res = res + nxs[i] * R end
-		return res / r_R
-	end)
-	local conns = matrix{2,2,2}:lambda(function(k,i,j)
-		return .5 * (dgs[k][i][j] + dgs[k][j][i] - dgs[i][j][k])
-	end)
 	for i=1,2 do
 		for j=1,2 do
 			for k=1,2 do
-				Conn[i+1][j+1][k+1] = conns[i][j][k]
+				local s = 0
+				if i == j then s = s - d:ptr()[k] end
+				if i == k then s = s - d:ptr()[j] end
+				if j == k then s = s + d:ptr()[i] end
+				Conn[i+1][j+1][k+1] = .5 * R_r3 / mu_plus * s
 			end
 		end
 	end
-	Conn = gU * Conn
 	return Conn
 end
 
+--[[
+g_uv = eta_uv + f k_u k_v
+f = r^2 / (r^4 + a^2 z^2) (R r - Q^2)
+k_u = (1, (rx+ay)/(r^2 + a^2), (ry-ax)/(r^2 + a^2), z/r)
+a = J / M
+
+rc^2 = x^2 + y^2 + z^2
+1 = (x^2 + y^2) / (r^2 + a^2) + z^2 / r^2
+r^2 (r^2 + a^2) - r^2 (x^2 + y^2) - z^2 (r^2 + a^2) = 0
+r^4 + r^2 (a^2 - rc^2) - a^2 z^2 = 0
+r = +- sqrt (
+	rc^2 - a^2 +- sqrt(
+		(rc^2 - a^2)^2 + 4 a^2 z^2
+	)
+)
+
+... in 2D z=0:
+
+f = R / r - Q^2 / r^2
+f,u = -(R + 2 Q^2 / r) r,u / r^2
+
+k_u = (1, (rx+ay)/(r^2 + a^2), (ry-ax)/(r^2 + a^2))
+k_t,u = 0
+k_x,x = ((r,x x + r) (r^2 + a^2) - (rx+ay) (2 r r,x)) / (r^2 + a^2)^2
+k_y,x = ((r,x y - a) (r^2 + a^2) - (ry-ax) (2 r r,x)) / (r^2 + a^2)^2
+k_x,y = ((r,y x + a) (r^2 + a^2) - (rx+ay) (2 r r,y)) / (r^2 + a^2)^2
+k_y,y = ((r,y y + r) (r^2 + a^2) - (ry-ax) (2 r r,y)) / (r^2 + a^2)^2
+
+rc^2 = x^2 + y^2
+rc,a = x^a / sqrt(x^2 + y^2)
+rc,a = x^a / rc
+
+r = +-sqrt( rc^2 - a^2 +- |rc^2 - a^2| )
+r = 0, r = +-sqrt(2 (rc^2 - a^2) )
+r,a = +-(2 rc rc,a) / sqrt(2 (rc^2 - a^2) )
+r,a = +- 2 x^a / sqrt(2(rc^2 - a^2))
+
+g_ab,c = k_a k_b f,c + f (k_a,c k_b + k_a k_b,c)
+
+--]]
 local function Conn_KerrSchild(pt)
 	local d = pt - vec3d(0, body.centerX, body.centerY)
 	local t,x,y = d:unpack()
@@ -199,11 +249,9 @@ local function Conn_KerrSchild(pt)
 
 
 	-- r^4 + r^2 (a^2 - x^2 - y^2 - z^2) - a^2 z^2 = 0
-	local z = 0
+	local rcSq = x*x + y*y
 	local aSq = a*a
-	local b = aSq - x*x - y*y - z*z
-	local sqrtdiscr = math.sqrt(b*b + 4*aSq*z*z)
-	local rSq = .5*(-b + sqrtdiscr)
+	local rSq = math.sqrt(rcSq - aSq)
 	local r = math.sqrt(rSq)
 	local H = .5 * (r * rs - Q * Q) / (rSq + aSq*z*z/rSq)
 	local lU = matrix{
@@ -215,7 +263,6 @@ local function Conn_KerrSchild(pt)
 	local gU = matrix{{-1,0,0},{0,1,0},{0,0,1}} - 2 * H * matrix.outer(lU,lU)
 
 
-	local db_dxis = matrix{-2*x, -2*y}
 	local dr_dxis = matrix()
 	for i=1,2 do
 		dr_dxis[i] = (
@@ -301,6 +348,8 @@ local function deriv(pt)
 end
 
 _G.angleDistThreshold = 1
+_G.angleThreshold = 1
+_G.distThreshold = 1
 _G.dt = .01
 function App:simulate()
 	if math.floor(self.t - dt) ~= math.floor(self.t) then
@@ -313,6 +362,8 @@ function App:simulate()
 	self.t = self.t + dt
 	for i=1,#pts do
 		local pt = pts[i]
+		
+		-- Runge-Kutta 4
 		local k1 = deriv(pt) * dt 
 		local k2 = deriv(pt + k1 * .5) * dt
 		local k3 = deriv(pt + k2 * .5) * dt
@@ -346,6 +397,7 @@ function App:simulate()
 		local d1 = pb.pos - pa.pos
 		local d1len = math.sqrt(d1.y * d1.y + d1.z * d1.z)
 		d1 = d1 / d1len
+		
 		local d2 = pc.pos - pb.pos
 		local d2len = math.sqrt(d2.y * d2.y + d2.z * d2.z)
 		d2 = d2 / d2len
@@ -357,12 +409,14 @@ function App:simulate()
 		maxDist = math.max(maxDist, d1len)
 
 		-- then subdivide
-		
+
 		if d1len * (angle + 1) > angleDistThreshold then
+		--if d1len > distThreshold or angle > angleThreshold then
 			if not divs then divs = {} end
 			divs[ia] = true
 		end
 		if d2len * (angle + 1) > angleDistThreshold then
+		--if d2len > distThreshold or angle > angleThreshold then
 			if not divs then divs = {} end
 			divs[ib] = true
 		end
@@ -517,6 +571,7 @@ local function inputFloat(name, t, k)
 end
 
 function App:updateGUI()
+	ig.igText('vertex count '..#pts)
 	ig.igText('time '..self.t)
 	ig.igText('min angle '..minAngle)
 	ig.igText('max angle '..maxAngle)
@@ -524,6 +579,8 @@ function App:updateGUI()
 	ig.igText('max dist '..maxDist)
 	inputFloat('dt', _G, 'dt')
 	inputFloat('angle threshold', _G, 'angleDistThreshold')
+	--inputFloat('angle threshold', _G, 'angleThreshold')
+	--inputFloat('dist threshold', _G, 'distThreshold')
 	inputFloat('body center x', body, 'centerX')
 	inputFloat('body center y', body, 'centerY')
 	inputFloat('body Schwarzschild radius', body, 'R')
