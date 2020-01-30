@@ -7,7 +7,7 @@ local Orbit = require 'glapp.orbit'
 local ImGuiApp = require 'imguiapp'
 local matrix = require 'matrix'
 local ffi = require 'ffi'
-local vec3d = require 'ffi.vec.vec3d'
+local vec3d = require 'vec-ffi.vec3d'
 local ig = require 'ffi.imgui'
 local sdl = require 'ffi.sdl'
 local gl = require 'gl'
@@ -55,7 +55,7 @@ local maxDist = 0
 local body = {
 	centerX = 0,
 	centerY = 5,
-	R = .1,	-- Schwarzschild radius
+	R = 1,	-- Schwarzschild radius
 	rs = 1,	-- physical radius
 }
 
@@ -366,10 +366,10 @@ function App:simulate()
 	for i=1,#pts do
 		local pt = pts[i]
 	
-		--[[ Euler
+		-- [[ Euler
 		local delta = deriv(pt) * dt
 		--]]
-		-- [[ Runge-Kutta 4
+		--[[ Runge-Kutta 4
 		local k1 = deriv(pt) * dt 
 		local k2 = deriv(pt + k1 * .5) * dt
 		local k3 = deriv(pt + k2 * .5) * dt
