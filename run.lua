@@ -185,9 +185,9 @@ local function Conn_Schwarzschild(pt)
 		for j=1,2 do
 			for k=1,2 do
 				local s = 0
-				if i == j then s = s - d:ptr()[k] end
-				if i == k then s = s - d:ptr()[j] end
-				if j == k then s = s + d:ptr()[i] end
+				if i == j then s = s - d.s[k] end
+				if i == k then s = s - d.s[j] end
+				if j == k then s = s + d.s[i] end
 				Conn[i+1][j+1][k+1] = .5 * R_r3 / mu_plus * s
 			end
 		end
