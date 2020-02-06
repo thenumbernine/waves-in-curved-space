@@ -2,9 +2,6 @@
 local table = require 'ext.table'
 local class = require 'ext.class'
 local math = require 'ext.math'
-local View = require 'glapp.view'
-local Orbit = require 'glapp.orbit'
-local ImGuiApp = require 'imguiapp'
 local matrix = require 'matrix'
 local ffi = require 'ffi'
 local vec3d = require 'vec-ffi.vec3d'
@@ -12,7 +9,7 @@ local ig = require 'ffi.imgui'
 local sdl = require 'ffi.sdl'
 local gl = require 'gl'
 
-local App = class(Orbit(View.apply(ImGuiApp)))
+local App = class(require 'glapp.orbit'(require 'imguiapp'))
 App.title = 'wave in curved space'
 
 -- collections of pts to render a lightcone
