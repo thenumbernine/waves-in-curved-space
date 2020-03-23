@@ -1,4 +1,4 @@
-Wave propagation in arbitrary 2+1 metrics
+Lightcone / wavefront propagation in arbitrary 2+1 metrics
 
 Visualizes the light-cones in arbitrary equations-of-structure in 2+1 dimensions.
 
