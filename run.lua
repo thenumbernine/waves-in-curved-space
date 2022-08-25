@@ -5,7 +5,7 @@ local math = require 'ext.math'
 local matrix = require 'matrix'
 local ffi = require 'ffi'
 local vec3d = require 'vec-ffi.vec3d'
-local ig = require 'ffi.imgui'
+local ig = require 'imgui'
 local sdl = require 'ffi.sdl'
 local gl = require 'gl'
 
@@ -336,8 +336,8 @@ local metrics = table{
 
 local metricNames = metrics:map(function(p) return (next(p)) end)
 
-local currentMetric = ffi.new('int[1]', 2)
-local Conn = select(2, next(metrics[currentMetric[0]+1]))
+currentMetric = 3
+local Conn = select(2, next(metrics[currentMetric]))
 
 local function deriv(pt)
 	local vm = matrix{pt.vel:unpack()}
@@ -565,19 +565,6 @@ function App:update(...)
 	App.super.update(self, ...)
 end
 
-local buffer = ffi.new('char[256]')
-local function inputFloat(name, t, k)
-	local s = tostring(t[k])
-	ffi.copy(buffer, s, #s)
-	buffer[#s] = 0
-	if ig.igInputText(name, buffer, ffi.sizeof(buffer)) then
-		local v = tonumber(ffi.string(buffer))
-		if v then
-			t[k] = v
-		end
-	end
-end
-
 function App:updateGUI()
 	ig.igText('vertex count '..#pts)
 	ig.igText('time '..self.t)
@@ -585,16 +572,16 @@ function App:updateGUI()
 	ig.igText('max angle '..maxAngle)
 	ig.igText('min dist '..minDist)
 	ig.igText('max dist '..maxDist)
-	inputFloat('dt', _G, 'dt')
-	inputFloat('angle threshold', _G, 'angleDistThreshold')
-	--inputFloat('angle threshold', _G, 'angleThreshold')
-	--inputFloat('dist threshold', _G, 'distThreshold')
-	inputFloat('body center x', body, 'centerX')
-	inputFloat('body center y', body, 'centerY')
-	inputFloat('body Schwarzschild radius', body, 'R')
-	inputFloat('body surface radius', body, 'rs')
-	if ig.igCombo('metric', currentMetric, metricNames) then
-		Conn = select(2, next(metrics[currentMetric[0]+1]))
+	ig.luatableInputFloatAsText('dt', _G, 'dt')
+	ig.luatableInputFloatAsText('angle threshold', _G, 'angleDistThreshold')
+	--ig.luatableInputFloatAsText('angle threshold', _G, 'angleThreshold')
+	--ig.luatableInputFloatAsText('dist threshold', _G, 'distThreshold')
+	ig.luatableInputFloatAsText('body center x', body, 'centerX')
+	ig.luatableInputFloatAsText('body center y', body, 'centerY')
+	ig.luatableInputFloatAsText('body Schwarzschild radius', body, 'R')
+	ig.luatableInputFloatAsText('body surface radius', body, 'rs')
+	if ig.luatableCombo('metric', _G, 'currentMetric', metricNames) then
+		Conn = select(2, next(metrics[currentMetric]))
 	end
 end
 
