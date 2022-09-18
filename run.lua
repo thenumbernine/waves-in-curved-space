@@ -9,7 +9,7 @@ local ig = require 'imgui'
 local sdl = require 'ffi.sdl'
 local gl = require 'gl'
 
-local App = class(require 'glapp.orbit'(require 'imguiapp'))
+local App = require 'imguiapp.withorbit'()
 App.title = 'wave in curved space'
 
 -- collections of pts to render a lightcone
