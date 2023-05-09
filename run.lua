@@ -19,7 +19,7 @@ local pts
 local n = 10
 
 ffi.cdef[[
-typedef struct {
+typedef struct pt_t {
 	vec3d_t pos;
 	vec3d_t vel;
 } pt_t;
