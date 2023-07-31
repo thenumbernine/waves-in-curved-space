@@ -6,7 +6,7 @@ local matrix = require 'matrix'
 local ffi = require 'ffi'
 local vec3d = require 'vec-ffi.vec3d'
 local ig = require 'imgui'
-local sdl = require 'ffi.sdl'
+local sdl = require 'ffi.req' 'sdl'
 local gl = require 'gl'
 
 local App = require 'imguiapp.withorbit'()
