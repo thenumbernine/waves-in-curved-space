@@ -1,6 +1,5 @@
 #!/usr/bin/env luajit
 local table = require 'ext.table'
-local class = require 'ext.class'
 local math = require 'ext.math'
 local matrix = require 'matrix'
 local ffi = require 'ffi'
@@ -53,7 +52,7 @@ local body = {
 	centerX = 0,
 	centerY = 5,
 	R = 1,	-- Schwarzschild radius
-	rs = 1,	-- physical radius
+	rs = .1,	-- physical radius
 }
 
 function App:reset()
@@ -336,7 +335,7 @@ local metrics = table{
 
 local metricNames = metrics:map(function(p) return (next(p)) end)
 
-currentMetric = 3
+_G.currentMetric = 3
 local Conn = select(2, next(metrics[currentMetric]))
 
 local function deriv(pt)
@@ -347,7 +346,7 @@ local function deriv(pt)
 	)
 end
 
-_G.angleDistThreshold = 1
+_G.angleDistThreshold = 10
 _G.angleThreshold = 1
 _G.distThreshold = 1
 _G.dt = .01
@@ -364,13 +363,13 @@ function App:simulate()
 		local pt = pts[i]
 	
 		-- [[ Euler
-		local delta = deriv(pt) * dt
+		local delta = deriv(pt)
 		--]]
 		--[[ Runge-Kutta 4
-		local k1 = deriv(pt) * dt 
-		local k2 = deriv(pt + k1 * .5) * dt
-		local k3 = deriv(pt + k2 * .5) * dt
-		local k4 = deriv(pt + k3) * dt
+		local k1 = deriv(pt)
+		local k2 = deriv(pt + k1 * .5 * dt)
+		local k3 = deriv(pt + k2 * .5 * dt)
+		local k4 = deriv(pt + k3 * dt)
 		local delta = (k1 + k2 * 2 + k3 * 2 + k4) * (1/6) 
 		--]]
 		
@@ -436,15 +435,15 @@ function App:simulate()
 			if divs[i] then
 				local pa = pts[i]
 				local pb = pts[i%#pts+1]
-				local avel = math.sqrt(pa.vel.y * pa.vel.y + pa.vel.z * pa.vel.z)
-				local bvel = math.sqrt(pb.vel.y * pb.vel.y + pb.vel.z * pb.vel.z)
+--				local avel = math.sqrt(pa.vel.y * pa.vel.y + pa.vel.z * pa.vel.z)
+--				local bvel = math.sqrt(pb.vel.y * pb.vel.y + pb.vel.z * pb.vel.z)
 				
 				local vel = (pa.vel + pb.vel) * .5
 				
-				vel.x = 1
-				local beta = math.sqrt(vel.y * vel.y + vel.z * vel.z)
-				vel.y = vel.y / beta
-				vel.z = vel.z / beta
+--				vel.x = 1
+--				local beta = math.sqrt(vel.y * vel.y + vel.z * vel.z)
+--				vel.y = vel.y / beta
+--				vel.z = vel.z / beta
 			
 				-- TODO spherical average.  trace back from pa,pb pos along vel to find intersect in xy, then do spherical averaging
 				local np = pt_t(
@@ -457,17 +456,17 @@ function App:simulate()
 	end
 end
 
-function App:event(event, eventPtr)
-	App.super.event(self, event, eventPtr)
+function App:event(event)
+	App.super.event(self, event)
 	local canHandleMouse = not ig.igGetIO()[0].WantCaptureMouse
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
-	if event.type == sdl.SDL_KEYDOWN or event.type == sdl.SDL_KEYUP then
-		if canHandleKeyboard and event.type == sdl.SDL_KEYDOWN then
-			if event.key.keysym.sym == sdl.SDLK_SPACE then
+	if event[0].type == sdl.SDL_KEYDOWN or event[0].type == sdl.SDL_KEYUP then
+		if canHandleKeyboard and event[0].type == sdl.SDL_KEYDOWN then
+			if event[0].key.keysym.sym == sdl.SDLK_SPACE then
 				self.updateMethod = not self.updateMethod
-			elseif event.key.keysym.sym == ('u'):byte() then
+			elseif event[0].key.keysym.sym == ('u'):byte() then
 				self.updateMethod = 'step'
-			elseif event.key.keysym.sym == ('r'):byte() then
+			elseif event[0].key.keysym.sym == ('r'):byte() then
 				print'resetting...'
 				self:reset()
 				self.updateMethod = nil
