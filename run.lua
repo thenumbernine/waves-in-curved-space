@@ -9,6 +9,7 @@ local sdl = require 'ffi.req' 'sdl'
 local gl = require 'gl'
 
 local App = require 'imguiapp.withorbit'()
+App.viewUseGLMatrixMode = true
 App.title = 'wave in curved space'
 
 -- collections of pts to render a lightcone
