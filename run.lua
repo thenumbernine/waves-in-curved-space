@@ -5,10 +5,10 @@ local matrix = require 'matrix'
 local ffi = require 'ffi'
 local vec3d = require 'vec-ffi.vec3d'
 local ig = require 'imgui'
-local sdl = require 'ffi.req' 'sdl'
+local sdl = require 'sdl'
 local gl = require 'gl'
 
-local App = require 'imguiapp.withorbit'()
+local App = require 'imgui.appwithorbit'()
 App.viewUseGLMatrixMode = true
 App.title = 'wave in curved space'
 
@@ -120,7 +120,7 @@ g_ij,k = delta_ij 4 (1+R/(4r))^3 (1+R/(4r))'
 Conn_ttt = 0
 Conn_itt = 1/2 (g_it,t + g_it,t - g_tt,i) = -1/2 g_tt,i = 1/2 R/r^3 (1-R/(4r))/(1+R/(4r))^3 x^l delta_li
 Conn_tit = Conn_tti = 1/2 g_tt,i = -Conn_itt
-Conn_ijt = Conn_itj = 1/2 (g_ij,t + g_it,j - g_jt,i) = 1/2 g_ij,t = 0 
+Conn_ijt = Conn_itj = 1/2 (g_ij,t + g_it,j - g_jt,i) = 1/2 g_ij,t = 0
 Conn_tij = 1/2 (g_ti,j + g_tj,i - g_ij,t) = -1/2 g_ij,t = 0
 Conn_ijk = 1/2 (g_ij,k + g_ik,j - g_jk,i) = 1/2 (
 		- R/r^3 (1+R/(4r))^3 delta_ij x^k
@@ -153,7 +153,7 @@ local function Conn_Schwarzschild(pt)
 	if r2 < epsilon * epsilon then return Conn end
 	local _1_r2 = 1 / r2
 	local r = math.sqrt(r2)
-	
+
 	local r_rs = r / body.rs
 	local R = body.R * math.ceil(1, r_rs * r_rs)
 	local R_r = R / r
@@ -162,22 +162,22 @@ local function Conn_Schwarzschild(pt)
 	local mu_plus = 1 + .25 * R_r
 	local mu_minus = 1 - .25 * R_r
 
-	local mu_plus_2 = mu_plus * mu_plus   
+	local mu_plus_2 = mu_plus * mu_plus
 	local mu_plus_4 = mu_plus_2 * mu_plus_2
-	local mu_plus_7 = mu_plus_4 * mu_plus_2 * mu_plus 
+	local mu_plus_7 = mu_plus_4 * mu_plus_2 * mu_plus
 
 	local conn_tti = .5 * R_r3 * 1 / (mu_plus * mu_minus)
 	local conn_ttx = conn_tti * x
 	Conn[1][1][2] = conn_ttx
 	Conn[1][2][1] = conn_ttx
-	local conn_tty = conn_tti * y 
+	local conn_tty = conn_tti * y
 	Conn[1][1][3] = conn_tty
 	Conn[1][3][1] = conn_tty
-	
+
 	local conn_itt = .5 * R_r3 * mu_minus / mu_plus_7
 	Conn[2][1][1] = conn_itt * x
 	Conn[3][1][1] = conn_itt * y
-	
+
 	for i=1,2 do
 		for j=1,2 do
 			for k=1,2 do
@@ -266,9 +266,9 @@ local function Conn_KerrSchild(pt)
 	local dr_dxis = matrix()
 	for i=1,2 do
 		dr_dxis[i] = (
-			-.25 * db_dxis[i] 
+			-.25 * db_dxis[i]
 			+ .5 * (
-				b * db_dxis[i] 
+				b * db_dxis[i]
 				+ (i == 3 and (4*aSq*z) or 0)
 			) / sqrtdiscr
 		) / r
@@ -289,7 +289,7 @@ local function Conn_KerrSchild(pt)
 	end
 
 	local aSq_plus_rSq = rSq + aSq
-	
+
 	local l = matrix{
 		1,
 		(r*x + a*y)/aSq_plus_rSq,
@@ -300,7 +300,7 @@ local function Conn_KerrSchild(pt)
 	local dl_dx = matrix{
 		{0,0,0},
 		{
-			0, 
+			0,
 			(dr_dxis[1] * (x * (a^2 - r^2) - 2 * a * y * r) / aSq_plus_rSq + r) / aSq_plus_rSq,
 			(dr_dxis[2]  * (x * (a^2 - r^2) - 2 * a * y * r) / aSq_plus_rSq + a) / aSq_plus_rSq,
 		},
@@ -362,7 +362,7 @@ function App:simulate()
 	self.t = self.t + dt
 	for i=1,#pts do
 		local pt = pts[i]
-	
+
 		-- [[ Euler
 		local delta = deriv(pt)
 		--]]
@@ -371,13 +371,13 @@ function App:simulate()
 		local k2 = deriv(pt + k1 * .5 * dt)
 		local k3 = deriv(pt + k2 * .5 * dt)
 		local k4 = deriv(pt + k3 * dt)
-		local delta = (k1 + k2 * 2 + k3 * 2 + k4) * (1/6) 
+		local delta = (k1 + k2 * 2 + k3 * 2 + k4) * (1/6)
 		--]]
-		
+
 		delta = delta * (dt / delta.pos.x)
 		pts[i] = pts[i] + delta
 		--pt.vel = pt.vel / math.sqrt(pt.vel[1]*pt.vel[1] - pt.vel[2] * pt.vel[2] - pt.vel[3] * pt.vel[3])
-		
+
 		--[[ re-normalize
 		pt.vel.x = 1
 		local beta = math.sqrt(pt.vel.x * pt.vel.x + pt.vel.y * pt.vel.y)
@@ -405,11 +405,11 @@ function App:simulate()
 		local d1 = pb.pos - pa.pos
 		local d1len = math.sqrt(d1.y * d1.y + d1.z * d1.z)
 		d1 = d1 / d1len
-		
+
 		local d2 = pc.pos - pb.pos
 		local d2len = math.sqrt(d2.y * d2.y + d2.z * d2.z)
 		d2 = d2 / d2len
-	
+
 		local angle = math.acos(math.clamp(d1.y * d2.y + d1.z * d2.z, -1, 1))
 		minAngle = math.min(minAngle, angle)
 		maxAngle = math.max(maxAngle, angle)
@@ -428,7 +428,7 @@ function App:simulate()
 			if not divs then divs = {} end
 			divs[ib] = true
 		end
-		
+
 		i = i + 1
 	end
 	if divs then
@@ -438,14 +438,14 @@ function App:simulate()
 				local pb = pts[i%#pts+1]
 --				local avel = math.sqrt(pa.vel.y * pa.vel.y + pa.vel.z * pa.vel.z)
 --				local bvel = math.sqrt(pb.vel.y * pb.vel.y + pb.vel.z * pb.vel.z)
-				
+
 				local vel = (pa.vel + pb.vel) * .5
-				
+
 --				vel.x = 1
 --				local beta = math.sqrt(vel.y * vel.y + vel.z * vel.z)
 --				vel.y = vel.y / beta
 --				vel.z = vel.z / beta
-			
+
 				-- TODO spherical average.  trace back from pa,pb pos along vel to find intersect in xy, then do spherical averaging
 				local np = pt_t(
 					(pa.pos + pb.pos) * .5,
@@ -557,9 +557,9 @@ function App:update(...)
 	end
 	gl.glEnd()
 
-	if self.updateMethod then 
+	if self.updateMethod then
 		if self.updateMethod == 'step' then self.updateMethod = nil end
-		self:simulate() 
+		self:simulate()
 	end
 
 	App.super.update(self, ...)
