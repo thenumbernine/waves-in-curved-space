@@ -461,13 +461,13 @@ function App:event(event)
 	App.super.event(self, event)
 	local canHandleMouse = not ig.igGetIO()[0].WantCaptureMouse
 	local canHandleKeyboard = not ig.igGetIO()[0].WantCaptureKeyboard
-	if event[0].type == sdl.SDL_KEYDOWN or event[0].type == sdl.SDL_KEYUP then
-		if canHandleKeyboard and event[0].type == sdl.SDL_KEYDOWN then
-			if event[0].key.keysym.sym == sdl.SDLK_SPACE then
+	if event[0].type == sdl.SDL_EVENT_KEY_DOWN or event[0].type == sdl.SDL_EVENT_KEY_UP then
+		if canHandleKeyboard and event[0].type == sdl.SDL_EVENT_KEY_DOWN then
+			if event[0].key.key == sdl.SDLK_SPACE then
 				self.updateMethod = not self.updateMethod
-			elseif event[0].key.keysym.sym == ('u'):byte() then
+			elseif event[0].key.key == ('u'):byte() then
 				self.updateMethod = 'step'
-			elseif event[0].key.keysym.sym == ('r'):byte() then
+			elseif event[0].key.key == ('r'):byte() then
 				print'resetting...'
 				self:reset()
 				self.updateMethod = nil
